@@ -10,7 +10,8 @@ void DetectRegions::setFilename(string s) {
 }
 
 DetectRegions::DetectRegions(){
-    showSteps=false;
+    //showSteps=true;
+    chowSteps=false;
     saveRegions=false;
 }
 
