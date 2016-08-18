@@ -33,8 +33,13 @@ class DetectRegions{
         bool saveRegions;
         bool showSteps;
         vector<Plate> run(Mat input);
+        vector<Rect> segment_by_cascade(Mat image);
+        vector<Rect> refine_segment_by_cascade(Mat roi);
+
     private:
         vector<Plate> segment(Mat input);
+//        vector<Rect> segment_by_cascade(Mat image);
+
         bool verifySizes(RotatedRect mr);
         Mat histeq(Mat in);
 };

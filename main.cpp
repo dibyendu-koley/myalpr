@@ -55,18 +55,38 @@ int main(int argc, char** argv) {
     vector<string> ImgFileName;
     ImgFileName =  listFile(cmd.getData(3));
     //read input data. ESC or 'q' for quitting
+    string file_name;
     for(vector<string>::const_iterator i = ImgFileName.begin(); i != ImgFileName.end(); ++i) {
-        cout << dir_name+*i << "\n";    
+        file_name=*i;
+        cout << file_name << "\n";    
         //const char* img_path = cmd.getData(3);
         image = imread(dir_name+*i, CV_LOAD_IMAGE_COLOR); 
         imshow("Original Image", image);
         vector<Plate> posible_regions= detectRegions.run( image );
+        //detect rigion by haar cascade
+        vector<Rect> posible_regions_by_cascade= detectRegions.segment_by_cascade(image);
+            for(vector<Rect>::const_iterator j = posible_regions_by_cascade.begin(); j != posible_regions_by_cascade.end(); ++j) {
+                Mat img_cascade = image(Rect(j->x,j->y,j->width,j->height));
+                //after haar cacade send the rois to the segmentation process. this increase the localization rate
+                vector<Plate> posible_regions_after_cascade= detectRegions.run( img_cascade );
+                for(int i=0; i< posible_regions_after_cascade.size(); i++)
+                {
+                    Mat img_posible_regions_after_cascade=posible_regions_after_cascade[i].plateImg;
+                    imshow(file_name+"cascad", img_posible_regions_after_cascade);
+                    waitKey();
+                
+                }
+                
+            }
             for(int i=0; i< posible_regions.size(); i++)
             {
                 Mat img=posible_regions[i].plateImg;
-                imshow("Image", img);
+                imshow(file_name, img);
                 waitKey();
+                
             }
+        destroyWindow(file_name+"cascad");
+        destroyWindow(file_name);
     }
     return 0;
 }

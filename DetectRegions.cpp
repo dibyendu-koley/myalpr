@@ -11,7 +11,7 @@ void DetectRegions::setFilename(string s) {
 
 DetectRegions::DetectRegions(){
     //showSteps=true;
-    chowSteps=false;
+    showSteps=false;
     saveRegions=false;
 }
 
@@ -57,6 +57,25 @@ Mat DetectRegions::histeq(Mat in)
 
     return out;
 
+}
+vector<Rect> DetectRegions::segment_by_cascade(Mat image)
+{
+    Mat gray_image;
+    cvtColor( image, gray_image, CV_BGR2GRAY );
+    std::vector<Rect> rois;
+    // Load Face cascade (.xml file)
+    CascadeClassifier face_cascade;
+    face_cascade.load( "cascade.xml" );
+    // Detect faces
+    std::vector<Rect> faces;
+    face_cascade.detectMultiScale( gray_image, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(10, 20));
+    Mat roi;
+    for( int i = 0; i < faces.size(); i++ )
+    {
+        roi = image(faces[i]);
+        rois.push_back(faces[i]);
+    }
+    return rois;
 }
 
 vector<Plate> DetectRegions::segment(Mat input){
@@ -115,7 +134,8 @@ vector<Plate> DetectRegions::segment(Mat input){
             -1, // draw all contours
             cv::Scalar(255,0,0), // in blue
             1); // with a thickness of 1
-
+    //imshow("Result", result);
+    
     for(int i=0; i< rects.size(); i++){
 
         //For better rect cropping for each posible box
@@ -126,7 +146,7 @@ vector<Plate> DetectRegions::segment(Mat input){
         float minSize=(rects[i].size.width < rects[i].size.height)?rects[i].size.width:rects[i].size.height;
         minSize=minSize-minSize*0.5;
         //initialize rand and get 5 points around center for floodfill algorithm
-        srand ( time(NULL) );
+        //srand ( time(NULL) );         //------------joy comment it out
         //Initialize floodfill parameters and variables
         Mat mask;
         mask.create(input.rows + 2, input.cols + 2, CV_8UC1);
@@ -142,6 +162,7 @@ vector<Plate> DetectRegions::segment(Mat input){
             Point seed;
             seed.x=rects[i].center.x+rand()%(int)minSize-(minSize/2);
             seed.y=rects[i].center.y+rand()%(int)minSize-(minSize/2);
+            //cout<<seed.x<<"::"<<seed.y<<"\n";
             circle(result, seed, 1, Scalar(0,255,255), -1);
             int area = floodFill(input, mask, seed, Scalar(255,0,0), &ccomp, Scalar(loDiff, loDiff, loDiff), Scalar(upDiff, upDiff, upDiff), flags);
         }
@@ -187,6 +208,7 @@ vector<Plate> DetectRegions::segment(Mat input){
             Mat resultResized;
             resultResized.create(33,144, CV_8UC3);
             resize(img_crop, resultResized, resultResized.size(), 0, 0, INTER_CUBIC);
+            //imshow("test", img_crop);
             //Equalize croped image
             Mat grayResult;
             cvtColor(resultResized, grayResult, CV_BGR2GRAY); 
@@ -197,10 +219,13 @@ vector<Plate> DetectRegions::segment(Mat input){
                 ss << "tmp/" << filename << "_" << i << ".jpg";
                 imwrite(ss.str(), grayResult);
             }
-            output.push_back(Plate(grayResult,minRect.boundingRect()));
+            //cout<<minRect.boundingRect()<<endl;
+            output.push_back(Plate(grayResult,minRect.boundingRect()));     //store the gray histogram equalized image
+            //output.push_back(Plate(resultResized,minRect.boundingRect()));     //store rgb image
         }
     }       
-    if(showSteps) 
+    if(showSteps)
+    //if(1) 
         imshow("Contours", result);
 
     return output;
