@@ -32,9 +32,16 @@ class DetectRegions{
         void setFilename(string f);
         bool saveRegions;
         bool showSteps;
+        Mat histoImg;
+        vector<int> colHeights;
+        
         vector<Plate> run(Mat input);
         vector<Rect> segment_by_cascade(Mat image);
-        vector<Rect> refine_segment_by_cascade(Mat roi);
+        Mat refine_segment(Mat image,bool use_y_axis);
+        Rect refinePlate(Mat inputImage);
+
+        //vector<Plate> segment_char(Mat input);
+        void segment_char(Mat input);
 
     private:
         vector<Plate> segment(Mat input);

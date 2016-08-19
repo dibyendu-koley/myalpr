@@ -72,7 +72,8 @@ int main(int argc, char** argv) {
                 for(int i=0; i< posible_regions_after_cascade.size(); i++)
                 {
                     Mat img_posible_regions_after_cascade=posible_regions_after_cascade[i].plateImg;
-                    imshow(file_name+"cascad", img_posible_regions_after_cascade);
+                    detectRegions.segment_char(img_posible_regions_after_cascade);
+                    //imshow(file_name+"cascad", img_posible_regions_after_cascade);
                     waitKey();
                 
                 }
@@ -81,8 +82,9 @@ int main(int argc, char** argv) {
             for(int i=0; i< posible_regions.size(); i++)
             {
                 Mat img=posible_regions[i].plateImg;
-                imshow(file_name, img);
-                waitKey();
+                //detectRegions.segment_char(img);
+                //imshow(file_name, img);
+                //waitKey();
                 
             }
         destroyWindow(file_name+"cascad");

@@ -58,6 +58,7 @@ Mat DetectRegions::histeq(Mat in)
     return out;
 
 }
+
 vector<Rect> DetectRegions::segment_by_cascade(Mat image)
 {
     Mat gray_image;
@@ -77,7 +78,150 @@ vector<Rect> DetectRegions::segment_by_cascade(Mat image)
     }
     return rois;
 }
+Mat DetectRegions::refine_segment(Mat inputImage,bool use_y_axis)
+{
+    int max_col_size = 0;
 
+    int columnCount;
+
+    if (use_y_axis)
+    {
+      // Calculate the histogram for vertical stripes
+      for (int col = 0; col < inputImage.cols; col++)
+      {
+        columnCount = 0;
+
+        for (int row = 0; row < inputImage.rows; row++)
+        {
+          //if (inputImage.at<uchar>(row, col) > 0 && mask.at<uchar>(row, col) > 0)
+          if (inputImage.at<uchar>(row, col) > 0)
+            columnCount++;
+        }
+
+        colHeights.push_back(columnCount);
+
+        if (columnCount > max_col_size)
+          max_col_size = columnCount;
+      }
+    }
+    else
+    {
+      // Calculate the histogram for horizontal stripes
+      for (int row = 0; row < inputImage.rows; row++)
+      {
+        columnCount = 0;
+
+        for (int col = 0; col < inputImage.cols; col++)
+        {
+          //if (inputImage.at<uchar>(row, col) > 0 && mask.at<uchar>(row, col) > 0)
+          if (inputImage.at<uchar>(row, col) > 0)
+            columnCount++;
+        }
+
+        colHeights.push_back(columnCount);
+
+        if (columnCount > max_col_size)
+          max_col_size = columnCount;
+      }
+    }
+    int histo_width = colHeights.size();
+    int histo_height = max_col_size + 10;
+    histoImg = Mat::zeros(Size(histo_width, histo_height), CV_8U);
+    
+    // Draw the columns onto an Mat image
+    for (unsigned int col = 0; col < histoImg.cols; col++)
+    {
+      if (col >= colHeights.size())
+        break;
+
+      int columnCount = colHeights[col];
+      for (; columnCount > 0; columnCount--)
+        histoImg.at<uchar>(histo_height - columnCount, col) = 255;
+    }
+
+}
+//incompleat---------------
+Rect DetectRegions::refinePlate(Mat inputImage)
+{
+    Rect roi;
+    int loc_first,loc_last;
+    for (int col = 0; col < inputImage.cols; col++)
+    {
+        //if (inputImage.at<uchar>(row, col) > 0 && mask.at<uchar>(row, col) > 0)
+        //if (inputImage.at<uchar>(inputImage.rows, col) > 0)
+        //columnCount++;
+    }
+    return roi;
+}
+void DetectRegions::segment_char(Mat input)
+//vector<Plate> DetectRegions::segment_char(Mat input)
+{
+    vector<Plate> output;
+    //convert image to gray
+    Mat img_gray;
+    cvtColor(input, img_gray, CV_BGR2GRAY);
+    //blur(input, input, Size(5,5));    
+
+    //Finde vertical lines. Car plates have high density of vertical lines
+    Mat img_sobel;
+    //Sobel(input, img_sobel, CV_8U, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+    if(showSteps)
+        imshow("Sobel", img_sobel);
+
+    //threshold image
+    Mat img_threshold;
+    threshold(img_gray, img_threshold, 0, 255, CV_THRESH_OTSU+CV_THRESH_BINARY);
+    if(1)
+        imshow("Threshold", img_threshold);
+    Mat img_threshold_invert;
+    bitwise_not ( img_threshold, img_threshold_invert );
+    if(1)
+        imshow("Threshold Invert", img_threshold_invert);
+    //---------erosion is done for removing small patches-------------start
+    int erosion_size = 1;   
+    cv::Mat element_img_threshold = cv::getStructuringElement(cv::MORPH_CROSS,
+                      cv::Size(1 * erosion_size + 1, 1 * erosion_size + 1), 
+                      cv::Point(erosion_size, erosion_size) );
+
+    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
+    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
+    //---------erosion is done for removing small patches-------------end
+
+    if(1)
+        imshow("Threshold Invert after dialate", img_threshold_invert);
+    //---------------clear colHeights and histoImg on every count
+    histoImg.release();
+    colHeights.clear();
+//    //create histogram image virtical 
+//    refine_segment(img_threshold_invert,true);
+//    imshow("Histogram Image", histoImg);
+    //create histogram image horizontal
+    refine_segment(img_threshold_invert,false);
+    imshow("Histogram Image", histoImg);
+    //skeletonization the inverted image-----------start
+    cv::Mat skel(img_threshold_invert.size(), CV_8UC1, cv::Scalar(0));
+    cv::Mat temp;
+    cv::Mat eroded;
+ 
+    cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
+ 
+    bool done;		
+    do
+    {
+        cv::erode(img_threshold_invert, eroded, element);
+        cv::dilate(eroded, temp, element); // temp = open(img)
+        cv::subtract(img_threshold_invert, temp, temp);
+        cv::bitwise_or(skel, temp, skel);
+        eroded.copyTo(img_threshold_invert);
+        
+        done = (cv::countNonZero(img_threshold_invert) == 0);
+    } while (!done);
+    //skeletonization the inverted image-----------end
+
+    if(1)
+        imshow("Threshold Invert after keletonization", skel);
+    
+}
 vector<Plate> DetectRegions::segment(Mat input){
     vector<Plate> output;
 
@@ -220,8 +364,8 @@ vector<Plate> DetectRegions::segment(Mat input){
                 imwrite(ss.str(), grayResult);
             }
             //cout<<minRect.boundingRect()<<endl;
-            output.push_back(Plate(grayResult,minRect.boundingRect()));     //store the gray histogram equalized image
-            //output.push_back(Plate(resultResized,minRect.boundingRect()));     //store rgb image
+            //output.push_back(Plate(grayResult,minRect.boundingRect()));     //store the gray histogram equalized image
+            output.push_back(Plate(resultResized,minRect.boundingRect()));     //store rgb image
         }
     }       
     if(showSteps)

@@ -26,6 +26,7 @@ using namespace cv;
 class Plate{
     public:
         Plate();
+        Plate(Mat img);
         Plate(Mat img, Rect pos);
         string str();
         Rect position;
