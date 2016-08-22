@@ -37,7 +37,7 @@ class DetectRegions{
         
         vector<Plate> run(Mat input);
         vector<Rect> segment_by_cascade(Mat image);
-        Mat refine_segment(Mat image,bool use_y_axis);
+        Mat refine_segment(Mat image,Mat inputImageRGB,bool use_y_axis);
         Rect refinePlate(Mat inputImage);
 
         //vector<Plate> segment_char(Mat input);
