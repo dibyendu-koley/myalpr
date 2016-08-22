@@ -30,8 +30,9 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/1.jpg</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/2.jpg</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/del/</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/</runcommand>
+        <runcommand>"${OUTPUT_PATH}" ind wb /home/dibyendu/Desktop/car/back/del/</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>

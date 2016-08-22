@@ -17,9 +17,10 @@ DetectRegions::DetectRegions(){
 
 bool DetectRegions::verifySizes(RotatedRect mr){
 
-    float error=0.4;
+    float error=0.2;
     //Spain car plate size: 52x11 aspect 4,7272
-    float aspect=4.7272;
+    //float aspect=4.7272;
+    float aspect=4.3636;
     //Set a min and max area. All other patchs are discarded
     int min= 15*aspect*15; // minimum area
     int max= 125*aspect*125; // maximum area
@@ -58,7 +59,41 @@ Mat DetectRegions::histeq(Mat in)
     return out;
 
 }
-
+void DetectRegions::plateTopBottom(Mat src)
+{
+    Mat dst, cdst;
+    Canny(src, dst, 50, 200, 3);
+    cvtColor(dst, cdst, CV_GRAY2BGR);
+ 
+    vector<Vec2f> lines;
+      HoughLines(dst, lines, 1, CV_PI/180, 150, 0, 0 );
+    // detect lines
+    //HoughLines(dst, lines, 1, cv::CV_PI/180, 150, 0, 0 );
+ 
+    // draw lines
+    for( size_t i = 0; i < lines.size(); i++ )
+    {
+        float rho = lines[i][0], theta = lines[i][1];
+        Point pt1, pt2;
+        double a = cos(theta), b = sin(theta);
+        double x0 = a*rho, y0 = b*rho;
+        double angle = theta * (180 / CV_PI);
+         
+        pt1.x = cvRound(x0 + 1000*(-b));
+        pt1.y = cvRound(y0 + 1000*(a));
+        pt2.x = cvRound(x0 - 1000*(-b));
+        pt2.y = cvRound(y0 - 1000*(a));
+        if ( (angle > 70 && angle < 110) || (angle > 250 && angle < 290))
+        {
+        line( cdst, pt1, pt2, Scalar(0,0,255), 3, CV_AA);
+        }
+    }
+ 
+    imshow("source", src);
+    imshow("detected lines", cdst);
+ 
+    waitKey();
+}
 vector<Rect> DetectRegions::segment_by_cascade(Mat image)
 {
     Mat gray_image;
@@ -69,7 +104,7 @@ vector<Rect> DetectRegions::segment_by_cascade(Mat image)
     face_cascade.load( "cascade.xml" );
     // Detect faces
     std::vector<Rect> faces;
-    face_cascade.detectMultiScale( gray_image, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(10, 20));
+    face_cascade.detectMultiScale( gray_image, faces, 1.5, 15, 0|CV_HAAR_SCALE_IMAGE, Size(40, 20));
     Mat roi;
     for( int i = 0; i < faces.size(); i++ )
     {
@@ -382,7 +417,7 @@ vector<Plate> DetectRegions::segment(Mat input){
             -1, // draw all contours
             cv::Scalar(255,0,0), // in blue
             1); // with a thickness of 1
-    //imshow("Result", result);
+    imshow("Result", result);
     
     for(int i=0; i< rects.size(); i++){
 

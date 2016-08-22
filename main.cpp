@@ -67,14 +67,15 @@ int main(int argc, char** argv) {
         vector<Rect> posible_regions_by_cascade= detectRegions.segment_by_cascade(image);
             for(vector<Rect>::const_iterator j = posible_regions_by_cascade.begin(); j != posible_regions_by_cascade.end(); ++j) {
                 Mat img_cascade = image(Rect(j->x,j->y,j->width,j->height));
-                imshow(file_name+"cascad", img_cascade);
+                //imshow(file_name+"cascad", img_cascade);
+                //detectRegions.plateTopBottom(img_cascade);
                 //after haar cacade send the rois to the segmentation process. this increase the localization rate
                 vector<Plate> posible_regions_after_cascade= detectRegions.run( img_cascade );
                 for(int i=0; i< posible_regions_after_cascade.size(); i++)
                 {
                     Mat img_posible_regions_after_cascade=posible_regions_after_cascade[i].plateImg;
                     //detectRegions.segment_char(img_posible_regions_after_cascade);
-                    //imshow(file_name+"cascad", img_posible_regions_after_cascade);
+                    imshow(file_name+"cascad", img_posible_regions_after_cascade);
                     waitKey();
                 
                 }
