@@ -10,8 +10,8 @@ void DetectRegions::setFilename(string s) {
 }
 
 DetectRegions::DetectRegions(){
-    //showSteps=true;
-    showSteps=false;
+    showSteps=true;
+    //showSteps=false;
     saveRegions=false;
 }
 
@@ -104,7 +104,7 @@ vector<Rect> DetectRegions::segment_by_cascade(Mat image)
     face_cascade.load( "cascade.xml" );
     // Detect faces
     std::vector<Rect> faces;
-    face_cascade.detectMultiScale( gray_image, faces, 1.5, 15, 0|CV_HAAR_SCALE_IMAGE, Size(40, 20));
+    face_cascade.detectMultiScale( gray_image, faces, 1.1, 15, 0|CV_HAAR_SCALE_IMAGE, Size(10, 5));
     Mat roi;
     for( int i = 0; i < faces.size(); i++ )
     {
@@ -284,83 +284,126 @@ Rect DetectRegions::refinePlate(Mat inputImage)
     }
     return roi;
 }
-void DetectRegions::segment_char(Mat input)
-//vector<Plate> DetectRegions::segment_char(Mat input)
+void DetectRegions::mySegment(Mat input)
 {
-    //imshow("test", input);
-    vector<Plate> output;
-    //convert image to gray
-    Mat img_gray;
-    cvtColor(input, img_gray, CV_BGR2GRAY);
-    //imshow("gray", input);
-    //blur(input, input, Size(5,5));    
-
-    //Finde vertical lines. Car plates have high density of vertical lines
-    Mat img_sobel;
-    //Sobel(input, img_sobel, CV_8U, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+    int img_y,img_x;
+    Mat img,blue_edges,green_edges,red_edges,edges;
+    //vector<vector<Point> > contours;
+    mycontours.clear();
+    vector<Vec4i> hierarchys;
+    Vec4i hierarchy;
+    Rect bounding_rect;
+    copyMakeBorder( input, img, 50, 50, 50, 50, BORDER_ISOLATED);
     if(showSteps)
-        imshow("Sobel", img_sobel);
+        imshow("Border Plate", img);
+    //Calculate the width and height of the image
+    img_y = input.cols;
+    img_x = input.rows;
+    Mat bgr[3];   //destination array   //B=bgr[0], G=bgr[1], R=bgr[2]
+    split(input,bgr);//split source  
+    //Run canny edge detection on each channel
+    Canny(bgr[0], blue_edges, 200, 250);
+    Canny(bgr[1], green_edges, 200, 250);
+    Canny(bgr[2], red_edges, 200, 250);
 
-    //threshold image
-    Mat img_threshold;
-    threshold(img_gray, img_threshold, 0, 255, CV_THRESH_OTSU+CV_THRESH_BINARY);
-    if(0)
-        imshow("Threshold", img_threshold);
-    Mat img_threshold_invert;
-    bitwise_not ( img_threshold, img_threshold_invert );
-    if(0)
-        imshow("Threshold Invert", img_threshold_invert);
-    //---------erosion is done for removing small patches-------------start
-    int erosion_size = 1;   
-    cv::Mat element_img_threshold = cv::getStructuringElement(cv::MORPH_CROSS,
-                      cv::Size(1 * erosion_size + 1, 1 * erosion_size + 1), 
-                      cv::Point(erosion_size, erosion_size) );
-
-    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
-    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
-    //---------erosion is done for removing small patches-------------end
-
-    if(0)
-        imshow("Threshold Invert after dialate", img_threshold_invert);
-    //---------------clear colHeights and histoImg on every count
-    histoImg.release();
-    colHeights.clear();
-//    //create histogram image virtical 
-//    refine_segment(img_threshold_invert,true);
-//    imshow("Histogram Image", histoImg);
-    //create histogram image horizontal
-    Mat refine_plate;
-    
-    refine_segment(img_threshold_invert, input,false);
-    if(1)
-        imshow("Histogram Image", histoImg);
-    //imshow("Refine plate", refine_plate);
-    
-    //skeletonization the inverted image-----------start
-    cv::Mat skel(img_threshold_invert.size(), CV_8UC1, cv::Scalar(0));
-    cv::Mat temp;
-    cv::Mat eroded;
- 
-    cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
- 
-    bool done;		
-    do
-    {
-        cv::erode(img_threshold_invert, eroded, element);
-        cv::dilate(eroded, temp, element); // temp = open(img)
-        cv::subtract(img_threshold_invert, temp, temp);
-        cv::bitwise_or(skel, temp, skel);
-        eroded.copyTo(img_threshold_invert);
+    //Join edges back into image
+    edges = blue_edges | green_edges | red_edges;
         
-        done = (cv::countNonZero(img_threshold_invert) == 0);
-    } while (!done);
-    //skeletonization the inverted image-----------end
+    if(showSteps)
+        imshow("Edge Plate", edges);
+    //Find the contours
+//contours, hierarchy = cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    
+        findContours( edges, mycontours, hierarchys, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(0, 0) );
 
-    if(1)
-        imshow("Threshold Invert after keletonization", skel);
-    
-    
+    //hierarchy = hierarchys;
+    //cout << hierarchy <<"\n";
+    for( int i = 0; i< mycontours.size(); i++ )
+    {
+        bounding_rect=boundingRect(mycontours[i]);
+        //# Check the contour and it's bounding box
+        //if keep(contour_) and include_box(index_, hierarchy, contour_):
+        //if keep(mycontours[i]) and include_box(i, hierarchys, mycontours[i])
+            
+    }
+    waitKey();
 }
+
+//void DetectRegions::mySegment(Mat input)
+////vector<Plate> DetectRegions::segment_char(Mat input)
+//{
+//    if(showSteps)
+//        imshow("Original Plate", input);
+//    vector<Plate> output;
+//    //convert image to gray
+//    Mat img_gray;
+//    cvtColor(input, img_gray, CV_BGR2GRAY);
+//    //Finde vertical lines. Car plates have high density of vertical lines
+//    Mat img_sobel;
+//    Sobel(input, img_sobel, CV_8U, 1, 0, 3, 1, 0, BORDER_DEFAULT);
+//    if(showSteps)
+//        imshow("Sobel", img_sobel);
+//
+//    //threshold image
+//    Mat img_threshold;
+//    threshold(img_gray, img_threshold, 0, 255, CV_THRESH_OTSU+CV_THRESH_BINARY);
+//    if(showSteps)
+//        imshow("Threshold", img_threshold);
+//    Mat img_threshold_invert;
+//    bitwise_not ( img_threshold, img_threshold_invert );
+//    if(showSteps)
+//        imshow("Threshold Invert", img_threshold_invert);
+//    //---------erosion is done for removing small patches-------------start
+//    int erosion_size = 1;   
+//    cv::Mat element_img_threshold = cv::getStructuringElement(cv::MORPH_CROSS,
+//                      cv::Size(1 * erosion_size + 1, 1 * erosion_size + 1), 
+//                      cv::Point(erosion_size, erosion_size) );
+//
+//    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
+//    cv::erode(img_threshold_invert, img_threshold_invert, element_img_threshold); 
+//    //---------erosion is done for removing small patches-------------end
+//
+//    if(0)
+//        imshow("Threshold Invert after dialate", img_threshold_invert);
+//    //---------------clear colHeights and histoImg on every count
+//    histoImg.release();
+//    colHeights.clear();
+////    //create histogram image virtical 
+////    refine_segment(img_threshold_invert,true);
+////    imshow("Histogram Image", histoImg);
+//    //create histogram image horizontal
+//    Mat refine_plate;
+//    
+//    //refine_segment(img_threshold_invert, input,false);
+//    if(showSteps)
+//        imshow("Histogram Image", histoImg);
+//    //imshow("Refine plate", refine_plate);
+//    
+//    //skeletonization the inverted image-----------start
+//    cv::Mat skel(img_threshold_invert.size(), CV_8UC1, cv::Scalar(0));
+//    cv::Mat temp;
+//    cv::Mat eroded;
+// 
+//    cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
+// 
+//    bool done;		
+//    do
+//    {
+//        cv::erode(img_threshold_invert, eroded, element);
+//        cv::dilate(eroded, temp, element); // temp = open(img)
+//        cv::subtract(img_threshold_invert, temp, temp);
+//        cv::bitwise_or(skel, temp, skel);
+//        eroded.copyTo(img_threshold_invert);
+//        
+//        done = (cv::countNonZero(img_threshold_invert) == 0);
+//    } while (!done);
+//    //skeletonization the inverted image-----------end
+//
+//    if(showSteps)
+//        imshow("Threshold Invert after keletonization", skel);
+//    waitKey();
+//    
+//}
 vector<Plate> DetectRegions::segment(Mat input){
     vector<Plate> output;
 
@@ -417,7 +460,7 @@ vector<Plate> DetectRegions::segment(Mat input){
             -1, // draw all contours
             cv::Scalar(255,0,0), // in blue
             1); // with a thickness of 1
-    imshow("Result", result);
+    //imshow("Result", result);
     
     for(int i=0; i< rects.size(); i++){
 
@@ -521,5 +564,148 @@ vector<Plate> DetectRegions::run(Mat input){
 
     //return detected and posibles regions
     return tmp;
+}
+//# Determine pixel intensity
+//# Apparently human eyes register colors differently.
+//# TVs use this formula to determine
+//# pixel intensity = 0.30R + 0.59G + 0.11B
+float DetectRegions::ii(int xx,int yy,Mat img)
+{
+    //Point3_<uchar>* p;
+    if(yy >= img.rows or xx >= img.cols)
+        return 0;;
+    Point3_<uchar>* p = img.ptr<Point3_<uchar> >(xx,yy);
+    // pixel intensity = 0.30R + 0.59G + 0.11B      //p->x :B p->y :G p->z :R
+    return (0.30 * p->z + 0.59 * p->y + 0.11 * p->x);
+}
+//# A quick test to check whether the contour is
+//# a connected shape    
+bool DetectRegions::connected(vector<Point> contour)
+{
+    Point first,last;
+    first = contour.front();
+    last = contour.back();
+    if(abs(first.x - last.x) <= 1 and abs(first.y - last.y) <= 1)
+        return true;
+    else
+        return false;
+}
+//----------------------------------
+//# Count the number of relevant siblings of a contour
+int DetectRegions::count_siblings(int index, vector<Vec4i> h_, vector<Point> contour, bool inc_children=false)
+{
+    int p_,n;
+    if (inc_children)
+        count = count_children(index, h_, contour);
+    else
+        count = 0;
+//     Look ahead
+    p_ = h_[index][0];
+    while (p_ > 0){
+        if (keep(mycontours(p_)))
+            count += 1;
+        if (inc_children)
+            count += count_children(p_, h_, contour);
+        p_ = h_[p_][0];
+    }
+//    # Look behind
+    n = h_[index][1];
+    while (n > 0){
+        if (keep(mycontours(n)))
+            count += 1;
+        if (inc_children)
+            count += count_children(n, h_, contour);
+        n = h_[n][1];
+    }
+return count;
+}
+//# Whether we should keep the containing box of this
+//# contour based on it's shape
+
+bool DetectRegions::keep_box(vector<Point> contour, Mat img)
+{
+    vector<Point>  contours_poly;
+    Rect boundRect;
+    approxPolyDP( contour, contours_poly, 3, true );
+    boundRect = boundingRect( contours_poly );
+    boundRect.width *= 1.0;
+    boundRect.height *= 1.0;
+//    # Test it's shape - if it's too oblong or tall it's
+//    # probably not a real character
+    if ((boundRect.width / boundRect.height < 0.1) or (boundRect.width / boundRect.height > 10))
+    {
+        return false;
+    }
+    else if ((boundRect.width * boundRect.height) > ((img.cols * img.rows) / 5) or ((boundRect.width * boundRect.height) < 15))
+    {
+         return false;
+    }
+    else
+    {
+    return true;
+    }
+}
+//# Whether we care about this contour
+
+bool DetectRegions::keep(vector<Point> contour, Mat input)
+{
+    if(keep_box(contour,input) and connected(contour))
+        return true;
+    else
+        return false;
+}
+//# Count the number of real children
+
+
+
+//---------------------------
+//# Count the number of real children
+int DetectRegions::count_children(int index, vector<Vec4i> h_, vector<Point> contour)
+{
+    if (h_[index][2] < 0)
+        return 0;
+    else
+    {
+        //        #If the first child is a contour we care about
+        //        # then count it, otherwise don't
+        if (keep(mycontours(h_[index][2])))
+            count = 1;
+        else
+            count = 0;
+        count += count_siblings(h_[index][2], h_, contour, true);
+        return count;
+    }
+}
+
+//---------------------------
+//# Get the first parent of the contour that we care about
+int DetectRegions::get_parent(int index, vector<Vec4i> h_)
+{
+    int parent;
+    parent = h_[index][3];
+    while(!keep(mycontours[parent]) and parent > 0)
+        parent = h_[parent][3];
+    return parent;
+}
+
+//---------------------------
+//# Quick check to test if the contour is a child
+bool DetectRegions::is_child(int index, vector<Vec4i> h_)
+{
+    if(get_parent(index, h_)>0)
+        return true;
+    else
+        return false;
+}
+
+//---------------------------
+bool DetectRegions::include_box(int index, vector<Vec4i> h_, vector<Point> contour)
+{
+    if (is_child(index, h_) and count_children(get_parent(index, h_), h_, contour) <= 2)
+        return false;
+    else if (count_children(index, h_, contour) > 2)
+        return false;
+    else
+        return true;
 }
 

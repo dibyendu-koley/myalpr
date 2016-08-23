@@ -36,6 +36,7 @@ class DetectRegions{
         bool showSteps;
         Mat histoImg;
         vector<int> colHeights;
+        vector<vector<Point> > mycontours;
         
         vector<Plate> run(Mat input);
         vector<Rect> segment_by_cascade(Mat image);
@@ -43,7 +44,23 @@ class DetectRegions{
         Rect refinePlate(Mat inputImage);
         void plateTopBottom(Mat inputImage);
         //vector<Plate> segment_char(Mat input);
-        void segment_char(Mat input);
+        void mySegment(Mat input);
+        //---------------below function are used in the algorithm
+        float ii(int xx,int yy,Mat input);
+        bool keep(vector<Point> contour, Mat input);
+        bool connected(vector<Point> contour);
+        bool keep_box(vector<Point> contour, Mat input);
+        bool is_child(int index, vector<Vec4i> h_);
+        bool include_box(int index, vector<Vec4i> h_, vector<Point> contour);
+        int get_parent(int index, vector<Vec4i> h_);
+        int count_children(int index, vector<Vec4i> h_, vector<Point> contour);
+        int count_siblings(int index, vector<Vec4i> h_, vector<Point> contour, bool inc_children=false);
+
+
+
+        //int count_children(index, h_, contour);
+
+
 
     private:
         vector<Plate> segment(Mat input);
