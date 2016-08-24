@@ -199,7 +199,7 @@ Mat DetectRegions::refine_segment(Mat inputImage, Mat inputImageRGB, bool use_y_
             //cout<<"pixel1::"<<static_cast<int>(inputImage.at<uchar>(row, col))<<"\n";
           }
         }
-        cout<<max_col_size*percent<<"::"<<temp_count<<":col "<<col<<"\n";
+        //cout<<max_col_size*percent<<"::"<<temp_count<<":col "<<col<<"\n";
         if (temp_count < max_col_size*percent ){
         //if (temp_count == 0 ){
             if(col-2 < 0)
@@ -221,7 +221,7 @@ Mat DetectRegions::refine_segment(Mat inputImage, Mat inputImageRGB, bool use_y_
                 //cout<<"pixel2::"<<static_cast<int>(inputImage.at<uchar>(row, col))<<"\n";
            }
         }
-        cout<<max_col_size*percent<<"--"<<temp_count<<":col "<<col<<"\n";
+        //cout<<max_col_size*percent<<"--"<<temp_count<<":col "<<col<<"\n";
         if (temp_count < max_col_size*percent){
         //if (temp_count == 0 ){
           temp_loc_y=col-2;
@@ -243,7 +243,7 @@ Mat DetectRegions::refine_segment(Mat inputImage, Mat inputImageRGB, bool use_y_
         temp_loc_y=1;
     roi.width = inputImageRGB.cols;
     roi.height = temp_loc_y-temp_loc_x+2;
-    cout<<roi<<"\n";
+    //cout<<roi<<"\n";
     circle(inputImageRGB, Point(roi.x,roi.y),2, Scalar(255,0,0),CV_FILLED, 2,0);        //blue
     circle(inputImageRGB, Point(roi.width,roi.height),2, Scalar(0,255,0),CV_FILLED, 2,0);
     imshow("input img", inputImage);
@@ -300,6 +300,7 @@ void DetectRegions::mySegment(Mat input)
     vector<Vec4i> hierarchys;
     Vec4i hierarchy;
     Rect bounding_rect;
+    //copyMakeBorder( input, img, 25, 25, 25, 25, BORDER_ISOLATED);
     copyMakeBorder( input, img, 50, 50, 50, 50, BORDER_ISOLATED);
     if(showSteps)
         imshow("Border Plate", img);
@@ -307,7 +308,7 @@ void DetectRegions::mySegment(Mat input)
     img_y = input.cols;
     img_x = input.rows;
     Mat bgr[3];   //destination array   //B=bgr[0], G=bgr[1], R=bgr[2]
-    split(input,bgr);//split source  
+    split(img,bgr);//split source  
     //Run canny edge detection on each channel
     Canny(bgr[0], blue_edges, 200, 250);
     Canny(bgr[1], green_edges, 200, 250);
@@ -319,30 +320,29 @@ void DetectRegions::mySegment(Mat input)
     edges.copyTo(rejected);
             
     if(showSteps)
-        imshow("Edge Plate", edges);
+        imshow("Edge", edges);
     //Find the contours
-//contours, hierarchy = cv2.findContours(edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    
-        findContours( edges, mycontours, hierarchys, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(0, 0) );
+    findContours( edges, mycontours, hierarchys, CV_RETR_TREE, CV_CHAIN_APPROX_NONE, Point(0, 0) );
 
-    //hierarchy = hierarchys;
-    //cout << hierarchys[0][3] <<"\n";
     for( int i = 0; i< mycontours.size(); i++ )
     {
         
         
         bounding_rect=boundingRect(mycontours[i]);
         //# Check the contour and it's bounding box
-        //if keep(contour_) and include_box(index_, hierarchy, contour_):
-        //if (keep(mycontours[i]) and include_box(i, hierarchys, mycontours[i]))
-        //if (keep(mycontours[i])) 
-        //string index=i;
+      
         std::ostringstream index ;
         index << i;
+        //cout<<hierarchys[i]<<"\n";
+        //cout<<hierarchys[hierarchys.size()-3]<<"\n";
+        //cout<<hierarchys[hierarchys.size()-4]<<"\n";
+        //cout<<keep(mycontours[i])<<"::"<<include_box(i, hierarchys, mycontours[i])<<"\n";
+        //cout<<mycontours[i]<<"\n";
         if (keep(mycontours[i]) and include_box(i, hierarchys, mycontours[i]))    
         {
+            cout<<mycontours[i]<<"\n";
             kps.push_back(keepers(mycontours[i],bounding_rect));
-            rectangle( processed, bounding_rect.tl(), bounding_rect.br(), Scalar(100, 100, 100), 2, 8, 0 );
+            rectangle( processed, bounding_rect.tl(), bounding_rect.br(), Scalar(100, 100, 100), 3, 8, 0 );
             //cv2.putText(rejected, str(index_), (x, y - 5), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255))
             putText(processed, index.str(), Point2f(bounding_rect.x, bounding_rect.y - 5), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255), 1);
             //rectangle(processed, bounding_rect.tl(),bounding_rect.br(), Scalar(100, 100, 100), 1);
@@ -350,74 +350,75 @@ void DetectRegions::mySegment(Mat input)
         }
         else
         {
-            rectangle(rejected, bounding_rect.tl(),bounding_rect.br(), Scalar(100, 100, 100), 2, 8, 0);
+            rectangle(rejected, bounding_rect.tl(),bounding_rect.br(), Scalar(100, 100, 100), 1, 8, 0);
             putText(rejected, index.str(), Point2f(bounding_rect.x, bounding_rect.y - 5), FONT_HERSHEY_PLAIN, 1, Scalar(255, 255, 255), 1);
         }
             
     }
-//    edges.copyTo(new_image);
-//    new_image.fill(255);
     Mat new_image(edges.rows,edges.cols, CV_8UC3, Scalar(255,255,255));
     if(showSteps)
-        imshow("processed Plate", new_image);
+        imshow("processed Plate", processed);
     if(showSteps)
         imshow("rejected Plate", rejected);
+    if(showSteps)
+        imshow("input Plate", input);
+    //------------dibyendu upto this point it is working perfect
     for( int i = 0; i< kps.size(); i++ )
     {
 //        # Find the average intensity of the edge pixels to
 //# determine the foreground intensity
-        float fg_int = 0.0,bg_int1 = 0.0;
+        //cout<<kps[i].contour<<"\n";
+        //cout<<kps[i].box<<"\n";
+        double fg_int = 0.0,bg_int1 = 0.0;
         for( int j = 0; j< kps[i].contour.size();j++)
         {
-            //cout<<kps[i].contour[0].x<<"::"<<kps[i].contour[0].y<<"\n";
-            fg_int += ii(kps[i].contour[0].x, kps[i].contour[0].y,input);
+            //---------tag
+            //cout << kps[i].contour[j].x<<","<< kps[i].contour[j].y<<"\n";
+            //cout << img_x <<":"<<img_y<<"\n";
+            fg_int += ii(kps[i].contour[j].x, kps[i].contour[j].y,input);
         }
-        fg_int /= kps[i].contour.size();
-        
+        //fg_int = fg_int/double(kps[i].contour.size());
+        //cout << fg_int<<"\n";
         Rect(x_, y_, width, height) = kps[i].box;
-         //# bottom left corner 3 pixels
-        cout<<kps[i].box.x<< kps[i].box.y<< kps[i].box.width<< kps[i].box.height<<"\n";
-        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y - 1, input));
-        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y, input));
-        bg_int.push_back(ii(kps[i].box.x, kps[i].box.y - 1, input));
-         //# bottom right corner 3 pixels
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y - 1, input));
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width, kps[i].box.y - 1, input));
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y, input));
-         //# top left corner 3 pixels
-        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y + kps[i].box.height + 1, input));
-        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y + kps[i].box.height, input));
-        bg_int.push_back(ii(kps[i].box.x, kps[i].box.y + kps[i].box.height + 1, input));
-         //# top right corner 3 pixels
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y + kps[i].box.height + 1, input));
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width, kps[i].box.y + kps[i].box.height + 1, input));
-        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y + kps[i].box.height, input));
-        bg_int1 = CalcMHWScore(bg_int);
-        //cout<<fg_int<<"::"<<bg_int1<<"\n";
-        //# Determine if the box should be inverted
-        if(fg_int >= bg_int1){
-            fg = 255;
-            bg = 0;
-        }
-        else{
-            fg = 0;
-            bg = 255;
-        }
-//        # Loop through every pixel in the box and color the
-//        # pixel accordingly
-        //for x in range(x_, x_ + width):
-        for (int k=kps[i].box.x;k<(kps[i].box.x + kps[i].box.width); k++){
-            for (int l=kps[i].box.y;l<(kps[i].box.y + kps[i].box.height); l++){
-                if (k >= img_y or l >= img_x)
-                    cout<<"pixel out of bounds"<<"\n";
-                if (ii(k, l,input) > fg_int)
-                    //new_image[k][l] = bg;
-                    new_image.at<uchar>(k, l, 1) = bg;
-                else
-                    //new_image[k][l] = fg;
-                    new_image.at<uchar>(k, l, 1) = fg;
-            }
-        }
+//         //# bottom left corner 3 pixels
+//        //cout<<kps[i].box.x<< kps[i].box.y<< kps[i].box.width<< kps[i].box.height<<"\n";
+//        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y - 1, input));
+//        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y, input));
+//        bg_int.push_back(ii(kps[i].box.x, kps[i].box.y - 1, input));
+//         //# bottom right corner 3 pixels
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y - 1, input));
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width, kps[i].box.y - 1, input));
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y, input));
+//         //# top left corner 3 pixels
+//        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y + kps[i].box.height + 1, input));
+//        bg_int.push_back(ii(kps[i].box.x - 1, kps[i].box.y + kps[i].box.height, input));
+//        bg_int.push_back(ii(kps[i].box.x, kps[i].box.y + kps[i].box.height + 1, input));
+//         //# top right corner 3 pixels
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y + kps[i].box.height + 1, input));
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width, kps[i].box.y + kps[i].box.height + 1, input));
+//        bg_int.push_back(ii(kps[i].box.x + kps[i].box.width + 1, kps[i].box.y + kps[i].box.height, input));
+//        bg_int1 = CalcMHWScore(bg_int);
+//        //# Determine if the box should be inverted
+//        if(fg_int >= bg_int1){
+//            fg = 255;
+//            bg = 0;
+//        }
+//        else{
+//            fg = 0;
+//            bg = 255;
+//        }
+////        # Loop through every pixel in the box and color the
+////        # pixel accordingly
+//        for (int k=kps[i].box.x;k<(kps[i].box.x + kps[i].box.width); k++){
+//            for (int l=kps[i].box.y;l<(kps[i].box.y + kps[i].box.height); l++){
+//                if (k >= img_y or l >= img_x)
+//                    cout<<"pixel out of bounds"<<"\n";
+//                if (ii(k, l,img) > fg_int)
+//                    new_image.at<uchar>(k,l) = bg;
+//                else
+//                    new_image.at<uchar>(k, l) = fg;
+//            }
+//        }
        
     }
     if(showSteps)
@@ -682,27 +683,19 @@ vector<Plate> DetectRegions::run(Mat input){
 //# Apparently human eyes register colors differently.
 //# TVs use this formula to determine
 //# pixel intensity = 0.30R + 0.59G + 0.11B
-float DetectRegions::ii(int xx,int yy,Mat img)
+double DetectRegions::ii(int xx,int yy,Mat img)
 {
     //Point3_<uchar>* p;
-    if(yy >= img.rows or xx >= img.cols)
-        return 0;;
+    if(yy >= img_y or xx >= img_x){
+        //cout<<"point outside the image\n";
+        return 0.0;
+    }
     Point3_<uchar>* p = img.ptr<Point3_<uchar> >(xx,yy);
     // pixel intensity = 0.30R + 0.59G + 0.11B      //p->x :B p->y :G p->z :R
+    //cout<<"test"<<(0.30 * p->z + 0.59 * p->y + 0.11 * p->x)<<"\n";
     return (0.30 * p->z + 0.59 * p->y + 0.11 * p->x);
 }
-//# A quick test to check whether the contour is
-//# a connected shape    
-bool DetectRegions::connected(vector<Point> contour)
-{
-    Point first,last;
-    first = contour.front();
-    last = contour.back();
-    if(abs(first.x - last.x) <= 1 and abs(first.y - last.y) <= 1)
-        return true;
-    else
-        return false;
-}
+
 //----------------------------------
 //# Count the number of relevant siblings of a contour
 int DetectRegions::count_siblings(int index, vector<Vec4i> h_, vector<Point> contour, bool inc_children = false)
@@ -732,45 +725,78 @@ int DetectRegions::count_siblings(int index, vector<Vec4i> h_, vector<Point> con
     }
 return count;
 }
-//# Whether we should keep the containing box of this
-//# contour based on it's shape
-
-bool DetectRegions::keep_box(vector<Point> contour)
-{
-    vector<Point>  contours_poly;
-    Rect boundRect;
-    approxPolyDP( contour, contours_poly, 3, true );
-    boundRect = boundingRect( contours_poly );
-    boundRect.width *= 1.0;
-    boundRect.height *= 1.0;
-//    # Test it's shape - if it's too oblong or tall it's
-//    # probably not a real character
-    if ((boundRect.width / boundRect.height < 0.1) or (boundRect.width / boundRect.height > 10))
-    {
-        return false;
-    }
-    else if ((boundRect.width * boundRect.height) > ((img_x * img_y) / 5) or ((boundRect.width * boundRect.height) < 15))
-    {
-         return false;
-    }
-    else
-    {
-    return true;
-    }
-}
 //# Whether we care about this contour
 
 bool DetectRegions::keep(vector<Point> contour)
 {
+    //cout<<keep_box(contour)<<"::"<<connected(contour)<<"\n";
     if(keep_box(contour) and connected(contour))
         return true;
     else
         return false;
 }
 //# Count the number of real children
+//---------------------------
+bool DetectRegions::include_box(int index, vector<Vec4i> h_, vector<Point> contour)
+{
+    int cc,p;
+    p=get_parent(index, h_);
+    //cout<<"count_children parent:"<<p<<"\n";
+    //cc = count_children(get_parent(index, h_), h_, contour);
+    //cout<<"count_children:"<<cc<<"\n";    
+    if (is_child(index, h_) and count_children(get_parent(index, h_), h_, contour) <= 2){
+        //cout<<"skipping: is an interior to a letter"<<"\n";
+        return false;
+    }
+    if (count_children(index, h_, contour) > 2){
+        //cout<<"skipping, is a container of letters"<<"\n";
+        return false;
+    }
+    return true;
+}
+//# Whether we should keep the containing box of this
+//# contour based on it's shape
 
-
-
+bool DetectRegions::keep_box(vector<Point> contour)
+{
+    //cout<<img_x<<":"<<img_y<<"\n";
+    //vector<Point>  contours_poly;
+    float w_,h_;
+    Rect boundRect;
+    //approxPolyDP( contour, contours_poly, 3, true );
+    boundRect = boundingRect( contour );
+    w_ = boundRect.width * 1.0;
+    h_ = boundRect.height * 1.0;
+    //cout<<boundRect.x<<":"<<boundRect.y<<":"<<w_<<":"<<h_<<"\n";
+//    # Test it's shape - if it's too oblong or tall it's
+//    # probably not a real character
+    if ((w_ / h_ < 0.1) or (w_ / h_ > 10))
+    {
+        return false;
+    }
+    else if ((w_ * h_) > ((img_x * img_y) / 5) or ((w_ * h_) < 15))
+    {
+         return false;
+    }
+//    else
+//    {
+    return true;
+//    }
+    
+}
+//# A quick test to check whether the contour is
+//# a connected shape    
+bool DetectRegions::connected(vector<Point> contour)
+{
+    Point first,last;
+    first = contour.front();
+    last = contour.back();
+    //cout<< first <<":"<<last<<"\n";
+    if(abs(first.x - last.x) <= 1 and abs(first.y - last.y) <= 1)
+        return true;
+    else
+        return false;
+}
 //---------------------------
 //# Count the number of real children
 int DetectRegions::count_children(int index, vector<Vec4i> h_, vector<Point> contour)
@@ -797,7 +823,7 @@ int DetectRegions::get_parent(int index, vector<Vec4i> h_)
 {
     int parent;
     parent = h_[index][3];
-//    cout<<parent<<"\n";
+    //cout<<index<<":"<<parent<<"\n";
     vector<Point> test = mycontours[1];
 //    if(keep(test))
 //        cout<<"++++"<<"\n";
@@ -807,6 +833,7 @@ int DetectRegions::get_parent(int index, vector<Vec4i> h_)
     
     while(!keep(test) and parent > 0)
         parent = h_[parent][3];
+    //cout<<parent<<"\n";
     return parent;
 }
 
@@ -820,21 +847,5 @@ bool DetectRegions::is_child(int index, vector<Vec4i> h_)
         return false;
 }
 
-//---------------------------
-bool DetectRegions::include_box(int index, vector<Vec4i> h_, vector<Point> contour)
-{
-//    cout<<h_[0][3]<<"\n";
-//    return true;
-//    if (is_child(index, h_))
-//        return false;
-//    else 
-//        return true;
-            
-    if (is_child(index, h_) and count_children(get_parent(index, h_), h_, contour) <= 2)
-        return false;
-    else if (count_children(index, h_, contour) > 2)
-        return false;
-    else
-        return true;
-}
+
 

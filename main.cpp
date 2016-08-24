@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
                 //Mat img_cascade = image(Rect(j->x,j->y*y_increase_percentage,j->width,j->height*height_reduce_percentage));
                 Mat img_cascade = image(Rect(j->x,j->y,j->width,j->height));
                 imshow(file_name+"cascad", img_cascade);
-                imwrite("cascad"+file_name, img_cascade );
+                //imwrite("cascad"+file_name, img_cascade );
                 detectRegions.mySegment(img_cascade);
                 //after haar cacade send the rois to the segmentation process. this increase the localization rate
 //                vector<Plate> posible_regions_after_cascade= detectRegions.run( img_cascade );

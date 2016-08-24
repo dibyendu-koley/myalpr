@@ -53,7 +53,7 @@ class DetectRegions{
         //vector<Plate> segment_char(Mat input);
         void mySegment(Mat input);
         //---------------below function are used in the algorithm
-        float ii(int xx,int yy,Mat input);
+        double ii(int xx,int yy,Mat img);
         bool keep(vector<Point> contour);
         bool connected(vector<Point> contour);
         bool keep_box(vector<Point> contour);
